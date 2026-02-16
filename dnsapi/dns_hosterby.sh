@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
-
 dns_hosterby_info='hoster
 Site: hoster.by
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_hosterby
@@ -14,10 +13,10 @@ OptionsAlt:
 
 hosterby_Api="https://serviceapi.hoster.by"
 
-dns_hosterby_add(){
+dns_hosterby_add() {
   fulldomain=$1
   txtvalue=$2
-    
+
   _debug fulldomain "$fulldomain"
   _debug txtvalue "$txtvalue"
 
@@ -27,7 +26,7 @@ dns_hosterby_add(){
   hosterby_Refresh_Token="$(_readaccountconf_mutable hosterby_Refresh_Token)"
   hosterby_OrderID="${hosterby_OrderID:-$(_readaccountconf_mutable hosterby_OrderID)}"
   hosterby_User_ID="${hosterby_User_ID:-$(_readaccountconf_mutable hosterby_User_ID)}"
-    
+
   if [ -z "$hosterby_Access_Token" ] || [ -z "$hosterby_Refresh_Token" ]; then
     _err "You do not specify hosterby api access-token and refresh-token."
     return 1
@@ -53,7 +52,7 @@ dns_hosterby_add(){
   fi
 
   _saveaccountconf_mutable hosterby_Access_Key "$hosterby_Access_Key"
-  _saveaccountconf_mutable hosterby_Secret_Key "$hosterby_Secret_Key"    
+  _saveaccountconf_mutable hosterby_Secret_Key "$hosterby_Secret_Key"
   _saveaccountconf_mutable hosterby_OrderID "$hosterby_OrderID"
   _saveaccountconf_mutable hosterby_User_ID "$hosterby_User_ID"
 
@@ -65,7 +64,7 @@ dns_hosterby_add(){
   fi
 }
 
-dns_hosterby_rm(){
+dns_hosterby_rm() {
   fulldomain=$1
   txtvalue=$2
   hosterby_Access_Key="${hosterby_Access_Key:-$(_readaccountconf_mutable hosterby_Access_Key)}"
@@ -76,7 +75,7 @@ dns_hosterby_rm(){
   hosterby_User_ID="${hosterby_User_ID:-$(_readaccountconf_mutable hosterby_User_ID)}"
 
   _debug "delete txt records"
-  if _hosterby_delete_txt_record;then
+  if _hosterby_delete_txt_record; then
     return 0
   else
     return 1
@@ -84,14 +83,13 @@ dns_hosterby_rm(){
 
 }
 
-
-_hosterby_rest(){
+_hosterby_rest() {
   method=$1
   query="$2"
   data="$3"
 
   _debug query "$query"
-  
+
   if [ "$method" != "GET" ]; then
     _debug data "$data"
     response="$(_post "$data" "$hosterby_Api/$query" "" "$method" "application/json")"
@@ -99,7 +97,7 @@ _hosterby_rest(){
     response="$(_get "$hosterby_Api/$query" "" "10")"
     _debug test
   fi
-    _debug2 "$?"
+  _debug2 "$?"
   if ! printf "%s" "$response" | grep '\"httpCode\": 200' >/dev/null; then
     _debug2 response "$response"
     _err error "$query"
@@ -109,15 +107,14 @@ _hosterby_rest(){
   return 0
 }
 
-
-_hosterby_validate_access_token(){
+_hosterby_validate_access_token() {
   _H1="X-User-Id: $hosterby_User_ID"
   _H2="Access-Token: $hosterby_Access_Token"
-  if _hosterby_rest GET "token/info/access" ; then
-    if _contains "$response" "dateExpires";then
+  if _hosterby_rest GET "token/info/access"; then
+    if _contains "$response" "dateExpires"; then
       _access_token_expire_date=$(echo "$response" | _egrep_o "\"dateExpires\": *[^,]*" | cut -d : -f 2 | tr -d " ")
       _debug2 _access_token_expire_date "$_access_token_expire_date"
-      if [ "$(_time)" -le "$_access_token_expire_date" ];then
+      if [ "$(_time)" -le "$_access_token_expire_date" ]; then
         _info "access token not expired"
         return 0
       else
@@ -128,14 +125,14 @@ _hosterby_validate_access_token(){
   fi
   return 1
 }
-_hosterby_validate_refresh_token(){
+_hosterby_validate_refresh_token() {
   _H1="X-User-Id: $hosterby_User_ID"
   _H2="Refresh-Token: $hosterby_Refresh_Token"
-  if _hosterby_rest GET "token/info/refresh" ; then
-    if _contains "$response" "dateExpires";then
+  if _hosterby_rest GET "token/info/refresh"; then
+    if _contains "$response" "dateExpires"; then
       _refresh_token_expire_date=$(echo "$response" | _egrep_o "\"dateExpires\": *[^,]*" | cut -d : -f 2 | tr -d " ")
       _debug2 _refresh_token_expire_date "$_refresh_token_expire_date"
-      if [ "$(_time)" -le "$_refresh_token_expire_date" ];then
+      if [ "$(_time)" -le "$_refresh_token_expire_date" ]; then
         _info "refresh token not expired"
         return 0
       else
@@ -147,10 +144,10 @@ _hosterby_validate_refresh_token(){
   return 1
 }
 
-_hosterby_refresh_access_token(){
+_hosterby_refresh_access_token() {
   _H1="X-User-Id: $hosterby_User_ID"
   _H2="Refresh-Token: $hosterby_Refresh_Token"
-  if _hosterby_rest PATCH "token/refresh" ; then
+  if _hosterby_rest PATCH "token/refresh"; then
     return 0
   fi
   return 1
@@ -184,22 +181,22 @@ _hosterby_create_new_tokens() {
   return 1
 }
 
-_hosterby_add_txt_record(){
+_hosterby_add_txt_record() {
   last_char=$(printf '%s' "$fulldomain" | tail -c 1)
 
   if [ "$last_char" != "." ]; then
     fulldomain="${fulldomain}."
   fi
   body=$(printf '{"name":"%s","ttl":3600,"records":[{"content":"\\"%s\\"","disabled":false}]}' \
-              "$fulldomain" "$txtvalue")
+    "$fulldomain" "$txtvalue")
 
   _H1="Access-Token: $hosterby_Access_Token"
   if _hosterby_rest POST "dns/orders/$hosterby_OrderID/records/txt" "$body"; then
     return 0
-  else 
+  else
     if _contains "$response" "dns_record_already_exist"; then
-      if _hosterby_delete_txt_record;then
-        if _hosterby_add_txt_record;then
+      if _hosterby_delete_txt_record; then
+        if _hosterby_add_txt_record; then
           return 0
         fi
       fi
@@ -208,7 +205,7 @@ _hosterby_add_txt_record(){
   return 1
 }
 
-_hosterby_delete_txt_record(){
+_hosterby_delete_txt_record() {
   last_char=$(printf '%s' "$fulldomain" | tail -c 1)
 
   if [ "$last_char" != "." ]; then
