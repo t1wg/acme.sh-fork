@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC2034
+
 dns_hosterby_info='hoster
 Site: hoster.by
 Docs: github.com/acmesh-official/acme.sh/wiki/dnsapi#dns_hosterby
